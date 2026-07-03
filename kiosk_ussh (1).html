@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosk Thông Tin USSH - Bản Cập Nhật Toàn Diện</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Warm Neutrals with USSH Academic Red and Accent Gold. Backgrounds: slate-50/100, Text: slate-800, Primary: #b91c1c (red-700), Secondary: #fbbf24 (amber-400) -->
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+            user-select: none; 
+            -webkit-user-select: none;
+        }
+
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 25s linear infinite;
+        }
+
+        @keyframes marquee {
+            0%   { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .screensaver-bg {
+            background-size: cover;
+            background-position: center;
+            transition: opacity 2s ease-in-out;
+        }
+
+        .btn-kiosk {
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        
+        .btn-kiosk:active {
+            transform: scale(0.97);
+            box-shadow: inset 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 35vh;
+            max-height: 350px;
+        }
+
+        .map-pin {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #b91c1c;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transform: translate(-50%, -100%);
+            cursor: pointer;
+            border: 2px solid white;
+        }
+        
+        .map-pin::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px 6px 0;
+            border-style: solid;
+            border-color: #b91c1c transparent transparent transparent;
+        }
+
+        .qr-placeholder {
+            background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 50% / 20px 20px;
+            width: 150px;
+            height: 150px;
+            border: 8px solid white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="text-slate-800" onmousemove="resetTimer()" onclick="resetTimer()" ontouchstart="resetTimer()">
+
+    <div id="screensaver" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black">
+        <div id="ss-bg-1" class="screensaver-bg absolute inset-0 opacity-80" style="background-image: url('557406248_1257665696402415_1409227559347378126_n.jpg');"></div>
+        <div id="ss-bg-2" class="screensaver-bg absolute inset-0 opacity-0" style="background-image: url('536593291_1219608263541492_1508595193435591745_n.jpg');"></div>
+        <div class="absolute inset-0 bg-black/50"></div>
+        
+        <div class="relative z-10 flex flex-col items-center text-white px-6 text-center">
+            <div class="w-40 h-40 bg-white rounded-full p-4 mb-6 shadow-2xl">
+                <img src="logo-ussh-2 (1).png" alt="USSH Logo" class="w-full h-full object-contain">
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-3 tracking-wide text-amber-400">TRƯỜNG ĐẠI HỌC KHOA HỌC XÃ HỘI VÀ NHÂN VĂN</h1>
+            <h2 class="text-2xl md:text-3xl font-light mb-12 text-slate-100">ĐẠI HỌC QUỐC GIA HÀ NỘI</h2>
+            
+            <p class="text-xl text-slate-300 mb-6 italic">Vui lòng chọn ngôn ngữ để bắt đầu | Please select a language to start</p>
+            
+            <!-- Language Selection Options -->
+            <div class="flex gap-8 mb-8">
+                <button onclick="openHome('vi')" class="btn-kiosk flex items-center gap-4 bg-red-700 hover:bg-red-800 text-white px-8 py-4 rounded-2xl border-2 border-amber-400 shadow-2xl text-2xl font-bold">
+                    <span class="text-3xl">🇻🇳</span> TIẾNG VIỆT
+                </button>
+                <button onclick="openHome('en')" class="btn-kiosk flex items-center gap-4 bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-2xl border-2 border-slate-600 shadow-2xl text-2xl font-bold">
+                    <span class="text-3xl">🇬🇧</span> ENGLISH
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="hidden w-full h-screen flex flex-col bg-slate-50 relative">
+        <header class="h-[12vh] bg-red-700 text-white flex items-center justify-between px-8 shadow-md shrink-0">
+            <div class="flex items-center gap-4">
+                <button id="btn-back" class="hidden btn-kiosk bg-amber-400 text-red-900 px-6 py-3 rounded-xl font-bold text-xl flex items-center gap-2" onclick="goBack()">
+                    &#8592; <span data-lang="back">QUAY LẠI</span>
+                </button>
+                <div class="w-20 h-20 bg-white rounded-full p-1 border-2 border-amber-400">
+                    <img src="logo-ussh-2 (1).png" alt="Logo" class="w-full h-full object-contain">
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold tracking-wide">USSH KIOSK</h2>
+                    <p class="text-sm text-amber-200" data-lang="header-sub">Trường Đại học Khoa học Xã hội & Nhân văn</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <div id="clock" class="text-3xl font-bold">--:--</div>
+                <div id="date" class="text-lg text-amber-200">--</div>
+                <div class="text-sm mt-1 flex items-center justify-end gap-1">
+                    &#9728; <span data-lang="weather">Thanh Xuân, Hà Nội: 28&deg;C</span>
+                </div>
+            </div>
+        </header>
+
+        <main id="main-content" class="flex-grow overflow-hidden relative">
+            
+            <div id="view-home" class="absolute inset-0 flex p-8 gap-8 fade-in">
+                <!-- Left panel: Map Overview -->
+                <div class="w-[50%] bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden flex flex-col relative cursor-pointer btn-kiosk" onclick="navigate('view-map')">
+                    <div class="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center z-10">
+                        <h3 class="font-bold text-xl text-red-800">&#128506; <span data-lang="map-overview">SƠ ĐỒ KHUÔN VIÊN TỔNG THỂ</span></h3>
+                        <span class="text-slate-500 text-sm italic" data-lang="map-tap">Chạm để phóng to & tìm đường</span>
+                    </div>
+                    <div class="flex-grow relative bg-slate-200 flex items-center justify-center p-4">
+                        <img src="so-do-01 (1).jpg" alt="Map Thumbnail" class="max-w-full max-h-full object-contain shadow-md rounded border border-slate-300">
+                        <div class="absolute inset-0 bg-red-900/5 hover:bg-red-900/0 transition-colors"></div>
+                    </div>
+                </div>
+
+                <!-- Right panel: Standard grid of 5 action blocks -->
+                <div class="w-[50%] grid grid-cols-1 gap-4 overflow-y-auto pr-1">
+                    <button class="btn-kiosk bg-white border-2 border-red-700 rounded-2xl shadow flex items-center p-5 gap-5 group" onclick="navigate('view-map')">
+                        <div class="w-16 h-16 bg-red-100 text-red-700 rounded-full flex items-center justify-center text-3xl group-hover:bg-red-700 group-hover:text-white transition-colors">&#128506;</div>
+                        <div class="text-left">
+                            <h3 class="text-xl font-bold text-slate-800" data-lang="menu-map">Bản Đồ & Phòng Học</h3>
+                            <p class="text-slate-500 mt-0.5 text-sm" data-lang="menu-map-desc">Tìm đường, định vị khu vực thi, giảng đường</p>
+                        </div>
+                    </button>
+                    
+                    <button class="btn-kiosk bg-white border-2 border-blue-600 rounded-2xl shadow flex items-center p-5 gap-5 group" onclick="navigate('view-schedule')">
+                        <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl group-hover:bg-blue-600 group-hover:text-white transition-colors">&#128197;</div>
+                        <div class="text-left">
+                            <h3 class="text-xl font-bold text-slate-800" data-lang="menu-schedule">Tra Cứu Lịch Thi & Học</h3>
+                            <p class="text-slate-500 mt-0.5 text-sm" data-lang="menu-schedule-desc">Quét thẻ hoặc nhập MSSV để xem lịch trình</p>
+                        </div>
+                    </button>
+
+                    <!-- NEW FEATURE BUTTON: Room Vacancy Tracking & Booking -->
+                    <button class="btn-kiosk bg-white border-2 border-violet-600 rounded-2xl shadow flex items-center p-5 gap-5 group" onclick="navigate('view-booking')">
+                        <div class="w-16 h-16 bg-violet-100 text-violet-600 rounded-full flex items-center justify-center text-3xl group-hover:bg-violet-600 group-hover:text-white transition-colors">&#127971;</div>
+                        <div class="text-left">
+                            <h3 class="text-xl font-bold text-slate-800" data-lang="menu-booking">Phòng Trống & Mượn Phòng</h3>
+                            <p class="text-slate-500 mt-0.5 text-sm" data-lang="menu-booking-desc">Tra cứu phòng tự học trống & làm thủ tục mượn phòng nhanh</p>
+                        </div>
+                    </button>
+
+                    <button class="btn-kiosk bg-white border-2 border-emerald-600 rounded-2xl shadow flex items-center p-5 gap-5 group" onclick="navigate('view-admin')">
+                        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl group-hover:bg-emerald-600 group-hover:text-white transition-colors">&#128193;</div>
+                        <div class="text-left">
+                            <h3 class="text-xl font-bold text-slate-800" data-lang="menu-admin">Hành Chính Một Cửa</h3>
+                            <p class="text-slate-500 mt-0.5 text-sm" data-lang="menu-admin-desc">Lấy mẫu đơn, bảng điểm, theo dõi tiến độ</p>
+                        </div>
+                    </button>
+
+                    <button class="btn-kiosk bg-white border-2 border-amber-500 rounded-2xl shadow flex items-center p-5 gap-5 group" onclick="navigate('view-news')">
+                        <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl group-hover:bg-amber-50 group-hover:text-white transition-colors">&#128240;</div>
+                        <div class="text-left">
+                            <h3 class="text-xl font-bold text-slate-800" data-lang="menu-news">Bảng Tin & Sự Kiện</h3>
+                            <p class="text-slate-500 mt-0.5 text-sm" data-lang="menu-news-desc">Thông báo đào tạo, học bổng, hoạt động</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div id="view-map" class="hidden absolute inset-0 bg-white p-6 flex flex-col fade-in">
+                <p class="text-lg text-slate-600 mb-4 font-medium border-l-4 border-red-700 pl-3" data-lang="map-hint">
+                    Tính năng cung cấp sơ đồ mặt bằng chi tiết. Nhập tên phòng (VD: E.302) để Kiosk tự động vẽ đường dẫn từ vị trí hiện tại.
+                </p>
+                <div class="flex gap-4 mb-4">
+                    <div class="flex-grow flex bg-slate-100 rounded-xl border-2 border-slate-300 overflow-hidden">
+                        <div class="px-6 py-4 text-slate-400 text-2xl bg-slate-200">&#128269;</div>
+                        <input type="text" id="map-search" class="w-full bg-transparent text-2xl px-4 outline-none font-bold" placeholder="Nhập số phòng (VD: E.302, G.201)..." readonly onclick="showMapKeyboard()">
+                    </div>
+                    <button class="btn-kiosk bg-red-700 text-white px-8 rounded-xl font-bold text-xl" onclick="triggerPathfinding()" data-lang="map-btn-find">TÌM ĐƯỜNG</button>
+                    <button class="btn-kiosk bg-slate-200 text-slate-700 px-8 rounded-xl font-bold text-xl" onclick="resetMap()" data-lang="map-btn-reset">LÀM MỚI</button>
+                </div>
+                
+                <div id="map-keyboard" class="hidden flex gap-2 mb-4 p-4 bg-slate-100 rounded-xl justify-center">
+                    <button class="px-6 py-3 bg-white border shadow rounded text-xl font-bold btn-kiosk" onclick="typeMap('E.')">Nhà E</button>
+                    <button class="px-6 py-3 bg-white border shadow rounded text-xl font-bold btn-kiosk" onclick="typeMap('G.')">Nhà G</button>
+                    <button class="px-6 py-3 bg-white border shadow rounded text-xl font-bold btn-kiosk" onclick="typeMap('I.')">Nhà I</button>
+                    <button class="px-6 py-3 bg-white border shadow rounded text-xl font-bold btn-kiosk" onclick="typeMap('302')">302</button>
+                    <button class="px-6 py-3 bg-white border shadow rounded text-xl font-bold btn-kiosk" onclick="typeMap('201')">201</button>
+                    <button class="px-6 py-3 bg-red-100 text-red-700 border border-red-300 shadow rounded text-xl font-bold btn-kiosk" onclick="clearMapTyping()" data-lang="kb-clear">XÓA</button>
+                </div>
+
+                <div class="flex-grow relative bg-slate-200 rounded-xl border border-slate-300 overflow-hidden flex items-center justify-center p-4">
+                    <div class="relative max-w-full max-h-full inline-block" id="map-wrapper">
+                        <img src="so-do-01 (1).jpg" id="base-map-img" alt="Map" class="max-w-full max-h-[60vh] object-contain shadow-lg" onload="resizeCanvas()">
+                        <canvas id="map-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none"></canvas>
+                        
+                        <div class="map-pin" style="top: 25%; left: 55%;" onclick="showMapInfo('Nhà E', 'Tòa nhà Hiệu bộ - Khu vực thi chính. Gồm văn phòng các khoa, phòng máy tính.')">E</div>
+                        <div class="map-pin" style="top: 15%; left: 65%;" onclick="showMapInfo('Nhà G', 'Khu vực thi chính. Tầng 1: Văn phòng Đoàn - Hội.')">G</div>
+                        <div class="map-pin" style="top: 20%; left: 88%;" onclick="showMapInfo('Nhà I', 'Khu vực thi. Khối phòng học chất lượng cao.')">I</div>
+                        <div class="map-pin bg-blue-600" style="top: 75%; left: 14%;" onclick="showMapInfo('Vị Trí Của Bạn', 'Kiosk Thông tin tại sảnh chính, gần Cổng 336 Nguyễn Trãi.')">K</div>
+                    </div>
+                    
+                    <div id="map-info-modal" class="hidden absolute top-8 right-8 w-80 bg-white rounded-xl shadow-2xl border-2 border-red-700 p-6 z-20">
+                        <h4 id="modal-title" class="text-2xl font-bold text-red-700 mb-2 border-b pb-2">Tiêu đề</h4>
+                        <p id="modal-desc" class="text-slate-600 text-lg mb-4">Mô tả</p>
+                        <img src="557406248_1257665696402415_1409227559347378126_n.jpg" class="w-full h-32 object-cover rounded mb-4 shadow">
+                        <button class="w-full py-2 bg-slate-200 rounded text-slate-800 font-bold btn-kiosk" onclick="document.getElementById('map-info-modal').classList.add('hidden')">ĐÓNG</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-schedule" class="hidden absolute inset-0 bg-white p-8 flex gap-8 fade-in">
+                <div class="w-1/3 flex flex-col">
+                    <p class="text-lg text-slate-600 mb-6 font-medium" data-lang="schedule-intro">
+                        Tra cứu thời khóa biểu cá nhân, lịch thi và phòng học trực tiếp từ dữ liệu Phòng Đào tạo. 
+                    </p>
+                    <div class="bg-blue-50 rounded-2xl border-2 border-blue-200 p-6 flex flex-col items-center justify-center mb-6">
+                        <div class="text-6xl mb-4 text-blue-400" style="animation: blink 2s infinite;">&#128247;</div>
+                        <h3 class="text-xl font-bold text-blue-800 mb-2" data-lang="scan-card">QUÉT THẺ SINH VIÊN</h3>
+                        <p class="text-center text-blue-600 text-sm" data-lang="scan-card-desc">Đưa mặt sau thẻ vào đầu đọc bên dưới màn hình</p>
+                    </div>
+                    <div class="text-center text-slate-400 font-bold mb-6" data-lang="or-manual">HOẶC NHẬP THỦ CÔNG</div>
+                    
+                    <input type="text" id="mssv-input" class="w-full border-4 border-slate-200 rounded-xl p-4 text-center text-3xl font-bold tracking-widest text-slate-700 mb-4 focus:border-blue-500 outline-none" placeholder="Nhập MSSV" readonly>
+                    
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                        <button class="bg-slate-100 py-4 text-2xl font-bold rounded shadow btn-kiosk" onclick="appendMssv('1')">1</button>
+                        <button class="bg-slate-100 py-4 text-2xl font-bold rounded shadow btn-kiosk" onclick="appendMssv('2')">2</button>
+                        <button class="bg-slate-100 py-4 text-2xl font-bold rounded shadow btn-kiosk" onclick="appendMssv('3')">3</button>
+                        <button class="bg-slate-100 py-4 text-2xl font-bold rounded shadow btn-kiosk" onclick="appendMssv('4')">4</button>
+                        <button class="bg-slate-100 py-4 text-2xl font-bold rounded shadow btn-kiosk" onclick="appendMssv('5')">5</button>
+                        <button class="bg-slate-100 py-4 text-2xl font-bold rounded shadow btn-kiosk" onclick="appendMssv('6')">6</button>
+                        <button class="bg-slate-100 py-4 text-2xl font-bold rounded shadow btn-kiosk" onclick="appendMssv('7')">7</button>
+                        <button class="bg-slate-100 py-4 text-2xl font-bold rounded shadow btn-kiosk" onclick="appendMssv('8')">8</button>
+                        <button class="bg-slate-100 py-4 text-2xl font-bold rounded shadow btn-kiosk" onclick="appendMssv('9')">9</button>
+                        <button class="bg-red-100 text-red-700 py-4 text-xl font-bold rounded shadow btn-kiosk" onclick="clearMssv()" data-lang="kb-clear">XÓA</button>
+                        <button class="bg-slate-100 py-4 text-2xl font-bold rounded shadow btn-kiosk" onclick="appendMssv('0')">0</button>
+                        <button class="bg-blue-600 text-white py-4 text-xl font-bold rounded shadow btn-kiosk" onclick="lookupSchedule()" data-lang="find">TÌM</button>
+                    </div>
+                </div>
+
+                <div class="w-2/3 bg-slate-50 border border-slate-200 rounded-2xl shadow-inner p-8 flex flex-col relative">
+                    <div id="schedule-empty" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                        <div class="text-8xl mb-4">&#128197;</div>
+                        <h2 class="text-2xl font-bold" data-lang="schedule-empty">Vui lòng nhập MSSV để tra cứu</h2>
+                    </div>
+                    
+                    <div id="schedule-result" class="hidden h-full flex flex-col fade-in">
+                        <div class="flex justify-between items-end border-b-4 border-blue-600 pb-4 mb-6">
+                            <div>
+                                <h2 class="text-3xl font-bold text-slate-800 uppercase" id="stu-name">NGUYỄN VĂN A</h2>
+                                <p class="text-lg text-slate-500 mt-1">Lớp: <span class="font-bold text-slate-700">K68 Báo chí học</span> | MSSV: <span class="font-bold text-slate-700" id="stu-id">2303xxxx</span></p>
+                            </div>
+                            <div class="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg font-bold" data-lang="schedule-term">Kỳ II, Năm học 2025-2026</div>
+                        </div>
+
+                        <h3 class="text-2xl font-bold text-red-700 mb-4 flex items-center gap-2">&#128680; <span data-lang="upcoming-exams">LỊCH THI SẮP TỚI</span></h3>
+                        <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden mb-8">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-100 border-b-2 border-slate-300">
+                                    <tr>
+                                        <th class="p-4 font-bold text-slate-700" data-lang="exam-date">Ngày Thi</th>
+                                        <th class="p-4 font-bold text-slate-700" data-lang="exam-subject">Môn Thi</th>
+                                        <th class="p-4 font-bold text-slate-700" data-lang="exam-time">Giờ</th>
+                                        <th class="p-4 font-bold text-slate-700" data-lang="exam-room">Phòng</th>
+                                        <th class="p-4 font-bold text-slate-700 text-center" data-lang="exam-action">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                        <td class="p-4 font-medium">10/07/2026</td>
+                                        <td class="p-4">Cơ sở văn hóa VN</td>
+                                        <td class="p-4 text-red-600 font-bold">07:30</td>
+                                        <td class="p-4 font-bold">E.302</td>
+                                        <td class="p-4 text-center">
+                                            <button class="bg-blue-600 text-white px-4 py-2 rounded shadow text-sm font-bold btn-kiosk" onclick="navigate('view-map'); typeMap('E.302'); triggerPathfinding()" data-lang="map-btn-find">Chỉ Đường</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="p-4 font-medium">14/07/2026</td>
+                                        <td class="p-4">Lịch sử văn minh TG</td>
+                                        <td class="p-4 text-red-600 font-bold">09:30</td>
+                                        <td class="p-4 font-bold">G.201</td>
+                                        <td class="p-4 text-center">
+                                            <button class="bg-blue-600 text-white px-4 py-2 rounded shadow text-sm font-bold btn-kiosk" onclick="navigate('view-map'); typeMap('G.201'); triggerPathfinding()" data-lang="map-btn-find">Chỉ Đường</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-booking" class="hidden absolute inset-0 bg-white p-8 flex flex-col fade-in">
+                <!-- Tabs structure -->
+                <div class="flex border-b border-slate-200 mb-6 shrink-0">
+                    <button id="tab-btn-rooms" class="py-4 px-8 font-bold text-2xl border-b-4 border-violet-600 text-violet-700" onclick="switchBookingTab('rooms')">
+                        &#127971; <span data-lang="tab-rooms">Tra Cứu Phòng Trống (Real-Time)</span>
+                    </button>
+                    <button id="tab-btn-reserve" class="py-4 px-8 font-bold text-2xl text-slate-500 hover:text-slate-700" onclick="switchBookingTab('reserve')">
+                        &#128197; <span data-lang="tab-reserve">Quy Trình Mượn Phòng Học</span>
+                    </button>
+                </div>
+
+                <!-- Tab 1: Real-time Empty Rooms List -->
+                <div id="booking-rooms-container" class="flex-grow flex flex-col overflow-hidden">
+                    <p class="text-lg text-slate-500 mb-4" data-lang="booking-hint">
+                        *Dữ liệu cập nhật mỗi 5 phút dựa trên hệ thống quản lý lịch giảng dạy của nhà trường và cảm biến điện năng phòng học.
+                    </p>
+                    <div class="flex-grow overflow-y-auto border border-slate-200 rounded-2xl shadow-inner bg-slate-50 p-6">
+                        <table class="w-full bg-white rounded-xl overflow-hidden shadow">
+                            <thead class="bg-violet-700 text-white">
+                                <tr>
+                                    <th class="p-4 text-left font-bold" data-lang="tbl-building">Tòa Nhà</th>
+                                    <th class="p-4 text-left font-bold" data-lang="tbl-room">Số Phòng</th>
+                                    <th class="p-4 text-left font-bold" data-lang="tbl-capacity">Sức Chứa</th>
+                                    <th class="p-4 text-left font-bold" data-lang="tbl-status">Trạng Thái</th>
+                                    <th class="p-4 text-left font-bold" data-lang="tbl-next-vacant">Thời Gian Trống Tiếp Theo</th>
+                                    <th class="p-4 text-center font-bold" data-lang="exam-action">Hành Động</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr>
+                                    <td class="p-4 font-semibold text-slate-700">Nhà E</td>
+                                    <td class="p-4 font-bold text-violet-700">E.302</td>
+                                    <td class="p-4">60</td>
+                                    <td class="p-4"><span class="bg-emerald-100 text-emerald-800 text-sm px-3 py-1 rounded-full font-bold" data-lang="status-vacant">Trống</span></td>
+                                    <td class="p-4 font-medium text-slate-600" data-lang="time-e302">Đến 13:30 (Ca 3)</td>
+                                    <td class="p-4 text-center">
+                                        <button class="bg-violet-600 text-white px-4 py-2 rounded-lg font-bold btn-kiosk shadow" onclick="triggerDirectReserve('E.302')">Mượn Phòng</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 font-semibold text-slate-700">Nhà BC</td>
+                                    <td class="p-4 font-bold text-violet-700">BC.405</td>
+                                    <td class="p-4">45</td>
+                                    <td class="p-4"><span class="bg-red-100 text-red-800 text-sm px-3 py-1 rounded-full font-bold" data-lang="status-occupied">Đang Dạy Học</span></td>
+                                    <td class="p-4 font-medium text-slate-600" data-lang="time-bc405">Sau 11:30</td>
+                                    <td class="p-4 text-center">
+                                        <button class="bg-slate-300 text-slate-500 px-4 py-2 rounded-lg font-bold cursor-not-allowed" disabled>Bận</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 font-semibold text-slate-700">Nhà G</td>
+                                    <td class="p-4 font-bold text-violet-700">G.102</td>
+                                    <td class="p-4">100</td>
+                                    <td class="p-4"><span class="bg-emerald-100 text-emerald-800 text-sm px-3 py-1 rounded-full font-bold" data-lang="status-vacant">Trống</span></td>
+                                    <td class="p-4 font-medium text-slate-600" data-lang="time-g102">Cả Ngày</td>
+                                    <td class="p-4 text-center">
+                                        <button class="bg-violet-600 text-white px-4 py-2 rounded-lg font-bold btn-kiosk shadow" onclick="triggerDirectReserve('G.102')">Mượn Phòng</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 font-semibold text-slate-700">Nhà A</td>
+                                    <td class="p-4 font-bold text-violet-700">A.201</td>
+                                    <td class="p-4">40</td>
+                                    <td class="p-4"><span class="bg-emerald-100 text-emerald-800 text-sm px-3 py-1 rounded-full font-bold" data-lang="status-vacant">Trống</span></td>
+                                    <td class="p-4 font-medium text-slate-600" data-lang="time-a201">Đến 15:00</td>
+                                    <td class="p-4 text-center">
+                                        <button class="bg-violet-600 text-white px-4 py-2 rounded-lg font-bold btn-kiosk shadow" onclick="triggerDirectReserve('A.201')">Mượn Phòng</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Step-by-Step Room Reservation Wizard -->
+                <div id="booking-reserve-container" class="hidden flex-grow flex gap-8 overflow-hidden">
+                    <div class="w-1/3 border-r pr-6 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-violet-800 mb-4" data-lang="wizard-title">Mượn Phòng Tự Động</h3>
+                            <div class="space-y-6">
+                                <div id="step-ind-1" class="flex items-center gap-3 font-bold text-violet-600">
+                                    <span class="w-10 h-10 rounded-full bg-violet-600 text-white flex items-center justify-center">1</span>
+                                    <span data-lang="wz-s1">Xác thực Thẻ / MSSV</span>
+                                </div>
+                                <div id="step-ind-2" class="flex items-center gap-3 text-slate-400">
+                                    <span class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center">2</span>
+                                    <span data-lang="wz-s2">Chọn Tiết & Mục Đích</span>
+                                </div>
+                                <div id="step-ind-3" class="flex items-center gap-3 text-slate-400">
+                                    <span class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center">3</span>
+                                    <span data-lang="wz-s3">Nhận QR Phê Duyệt</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-amber-50 rounded-xl border border-amber-200 text-sm text-amber-800" data-lang="wizard-rules">
+                            <strong>* Lưu ý:</strong> Đăng ký mượn phòng tự động chỉ áp dụng cho tự học nhóm, hội ý ban cán sự lớp hoặc sinh hoạt câu lạc bộ dưới 40 người.
+                        </div>
+                    </div>
+
+                    <div class="w-2/3 bg-slate-50 rounded-2xl p-8 shadow-inner flex flex-col justify-between overflow-y-auto">
+                        <!-- Step 1 Layout -->
+                        <div id="booking-step-1" class="space-y-6 flex flex-col items-center">
+                            <h4 class="text-xl font-bold text-slate-700" data-lang="step1-title">Bước 1: Nhập Mã Số Sinh Viên để Tiếp Tục</h4>
+                            <input type="text" id="reserve-mssv" class="border-2 border-slate-300 rounded-xl p-4 text-center text-3xl font-bold w-64 tracking-widest outline-none bg-white" placeholder="23030000" readonly>
+                            <div class="grid grid-cols-3 gap-2 w-64">
+                                <button class="bg-white border py-3 font-bold rounded shadow btn-kiosk" onclick="appendReserveMssv('1')">1</button>
+                                <button class="bg-white border py-3 font-bold rounded shadow btn-kiosk" onclick="appendReserveMssv('2')">2</button>
+                                <button class="bg-white border py-3 font-bold rounded shadow btn-kiosk" onclick="appendReserveMssv('3')">3</button>
+                                <button class="bg-white border py-3 font-bold rounded shadow btn-kiosk" onclick="appendReserveMssv('4')">4</button>
+                                <button class="bg-white border py-3 font-bold rounded shadow btn-kiosk" onclick="appendReserveMssv('5')">5</button>
+                                <button class="bg-white border py-3 font-bold rounded shadow btn-kiosk" onclick="appendReserveMssv('6')">6</button>
+                                <button class="bg-white border py-3 font-bold rounded shadow btn-kiosk" onclick="appendReserveMssv('7')">7</button>
+                                <button class="bg-white border py-3 font-bold rounded shadow btn-kiosk" onclick="appendReserveMssv('8')">8</button>
+                                <button class="bg-white border py-3 font-bold rounded shadow btn-kiosk" onclick="appendReserveMssv('9')">9</button>
+                                <button class="bg-red-100 text-red-700 py-3 font-bold rounded shadow btn-kiosk" onclick="clearReserveMssv()">XÓA</button>
+                                <button class="bg-white border py-3 font-bold rounded shadow btn-kiosk" onclick="appendReserveMssv('0')">0</button>
+                                <button class="bg-violet-600 text-white py-3 font-bold rounded shadow btn-kiosk" onclick="reserveStepNext(1)">TIẾP</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 Layout -->
+                        <div id="booking-step-2" class="hidden space-y-4">
+                            <h4 class="text-xl font-bold text-slate-700 border-b pb-2" data-lang="step2-title">Bước 2: Cung Cấp Thông Tin Mượn</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-2" data-lang="lbl-room-sel">Phòng Đăng Ký:</label>
+                                    <input type="text" id="reserve-room-id" class="w-full bg-white border border-slate-300 p-3 rounded-lg font-bold text-violet-700" value="E.302" readonly>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-2" data-lang="lbl-shifts">Khung Giờ (Ca Học):</label>
+                                    <select id="reserve-shift" class="w-full bg-white border border-slate-300 p-3 rounded-lg font-bold text-slate-700">
+                                        <option value="Ca 1: 07:00 - 09:15">Ca 1: 07:00 - 09:15</option>
+                                        <option value="Ca 2: 09:30 - 11:45">Ca 2: 09:30 - 11:45</option>
+                                        <option value="Ca 3: 13:00 - 15:15">Ca 3: 13:00 - 15:15</option>
+                                        <option value="Ca 4: 15:30 - 17:45">Ca 4: 15:30 - 17:45</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-600 mb-2" data-lang="lbl-purpose">Mục Đích Sử Dụng:</label>
+                                <select id="reserve-purpose" class="w-full bg-white border border-slate-300 p-3 rounded-lg font-bold text-slate-700">
+                                    <option value="Học nhóm chuẩn bị thuyết trình" data-lang="purpose-p1">Học nhóm chuẩn bị thuyết trình</option>
+                                    <option value="Sinh hoạt Chi đoàn lớp" data-lang="purpose-p2">Sinh hoạt Chi đoàn lớp</option>
+                                    <option value="Hội ý câu lạc bộ USSH" data-lang="purpose-p3">Hội ý câu lạc bộ USSH</option>
+                                    <option value="Tập luyện văn nghệ / sự kiện" data-lang="purpose-p4">Tập luyện văn nghệ / sự kiện</option>
+                                </select>
+                            </div>
+                            <div class="flex justify-between pt-4">
+                                <button class="px-6 py-3 bg-slate-200 font-bold rounded-lg text-slate-700" onclick="reserveStepPrev(2)">QUAY LẠI</button>
+                                <button class="px-6 py-3 bg-violet-600 font-bold rounded-lg text-white" onclick="reserveStepNext(2)">XÁC NHẬN</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 Layout -->
+                        <div id="booking-step-3" class="hidden flex flex-col items-center space-y-6">
+                            <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-5xl">&#10004;</div>
+                            <h4 class="text-2xl font-bold text-slate-800" data-lang="reserve-success">Mượn Phòng Thành Công!</h4>
+                            
+                            <div class="flex gap-8 items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                <div class="qr-placeholder shadow-lg"></div>
+                                <div class="text-left space-y-2">
+                                    <p class="text-lg"><strong>MSSV:</strong> <span id="summary-mssv">23030000</span></p>
+                                    <p class="text-lg"><strong>Phòng:</strong> <span id="summary-room" class="text-violet-700 font-bold">E.302</span></p>
+                                    <p class="text-lg"><strong>Thời gian:</strong> <span id="summary-time">Ca 3: 13:00 - 15:15</span></p>
+                                    <p class="text-sm text-slate-500 max-w-xs" data-lang="qr-hint">* Chụp màn hình hoặc lưu mã QR này để xuất trình cho Ban bảo vệ khu vực khi nhận chìa khóa phòng.</p>
+                                </div>
+                            </div>
+
+                            <button class="px-8 py-3 bg-violet-600 font-bold rounded-lg text-white btn-kiosk shadow" onclick="resetReservationFlow()">MƯỢN PHÒNG KHÁC</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-admin" class="hidden absolute inset-0 bg-white flex fade-in">
+                <div class="w-1/3 bg-slate-100 border-r border-slate-300 flex flex-col">
+                    <div class="p-6 bg-emerald-700 text-white">
+                        <h2 class="text-2xl font-bold mb-2" data-lang="admin-title">&#128193; Hành Chính Một Cửa</h2>
+                        <p class="text-emerald-100 text-sm" data-lang="admin-desc">Cung cấp quy trình, tải biểu mẫu và số liệu xử lý thực tế.</p>
+                    </div>
+                    <div class="flex-grow overflow-y-auto">
+                        <button class="w-full text-left p-6 border-b border-slate-200 hover:bg-white focus:bg-white focus:border-l-4 focus:border-l-emerald-600 transition-colors btn-kiosk" onclick="showAdminDetail('cert')">
+                            <h4 class="font-bold text-lg text-slate-800" data-lang="admin-opt1">1. Cấp Giấy chứng nhận sinh viên</h4>
+                            <p class="text-sm text-slate-500 mt-1" data-lang="admin-opt1-desc">Hoãn NVQS, vé xe buýt, thẻ thư viện...</p>
+                        </button>
+                        <button class="w-full text-left p-6 border-b border-slate-200 hover:bg-white focus:bg-white focus:border-l-4 focus:border-l-emerald-600 transition-colors btn-kiosk" onclick="showAdminDetail('transcript')">
+                            <h4 class="font-bold text-lg text-slate-800" data-lang="admin-opt2">2. Cấp Bảng điểm tạm thời</h4>
+                            <p class="text-sm text-slate-500 mt-1" data-lang="admin-opt2-desc">Xin việc, thực tập, du học...</p>
+                        </button>
+                        <button class="w-full text-left p-6 border-b border-slate-200 hover:bg-white focus:bg-white focus:border-l-4 focus:border-l-emerald-600 transition-colors btn-kiosk" onclick="showAdminDetail('stats')">
+                            <h4 class="font-bold text-lg text-slate-800 flex items-center justify-between">
+                                <span data-lang="admin-opt3">&#128202; Thống kê năng lực xử lý</span>
+                                <span class="bg-emerald-200 text-emerald-800 text-xs px-2 py-1 rounded" data-lang="admin-badge">Báo cáo</span>
+                            </h4>
+                            <p class="text-sm text-slate-500 mt-1" data-lang="admin-opt3-desc">Tốc độ giải quyết hồ sơ 30 ngày qua</p>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="w-2/3 p-10 flex flex-col overflow-y-auto" id="admin-detail-content">
+                    <div class="text-center text-slate-400 mt-20">
+                        <div class="text-6xl mb-4">&#9756;</div>
+                        <h2 class="text-2xl font-bold" data-lang="admin-empty">Vui lòng chọn thủ tục bên trái</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-news" class="hidden absolute inset-0 bg-slate-50 p-8 flex flex-col fade-in">
+                <p class="text-lg text-slate-600 mb-6 font-medium bg-white p-4 rounded-xl border border-slate-200 shadow-sm" data-lang="news-intro">
+                    Bảng tin số tổng hợp các hoạt động, thông báo quan trọng và sự kiện nổi bật đang diễn ra tại trường.
+                </p>
+                <div class="flex gap-4 mb-6 shrink-0">
+                    <button class="px-8 py-4 bg-amber-500 text-white font-bold text-xl rounded-xl shadow btn-kiosk" onclick="filterNews('all')" data-lang="filter-all">Tất cả</button>
+                    <button class="px-8 py-4 bg-white text-slate-600 font-bold text-xl rounded-xl border border-slate-200 shadow hover:bg-amber-50 btn-kiosk" onclick="filterNews('edu')" data-lang="filter-edu">Đào Tạo</button>
+                    <button class="px-8 py-4 bg-white text-slate-600 font-bold text-xl rounded-xl border border-slate-200 shadow hover:bg-amber-50 btn-kiosk" onclick="filterNews('scholar')" data-lang="filter-scholar">Học Bổng</button>
+                    <button class="px-8 py-4 bg-white text-slate-600 font-bold text-xl rounded-xl border border-slate-200 shadow hover:bg-amber-50 btn-kiosk" onclick="filterNews('event')" data-lang="filter-event">Sự Kiện</button>
+                </div>
+
+                <div class="flex-grow grid grid-cols-2 gap-8 overflow-y-auto" id="news-container">
+                </div>
+            </div>
+
+        </main>
+
+        <footer class="h-[8vh] bg-slate-800 text-white flex items-center px-4 shrink-0 shadow-[0_-4px_6px_rgba(0,0,0,0.1)] z-10 relative">
+            <div class="bg-red-600 font-bold px-4 py-2 rounded shrink-0 mr-4 flex items-center gap-2 shadow">
+                <span class="w-3 h-3 bg-white rounded-full inline-block" style="animation: blink 1s infinite;"></span>
+                <span data-lang="ticker-badge">TIN KHẨN</span>
+            </div>
+            <div class="marquee-container text-xl font-medium tracking-wide text-amber-300">
+                <div class="marquee-content" id="marquee-ticker-content">
+                    *** THÔNG BÁO: Lịch đăng ký tín chỉ học kỳ I năm học 2026-2027 bắt đầu từ 08:00 ngày 15/07. Sinh viên chú ý truy cập hệ thống đúng khung giờ của khóa mình. *** THÔNG BÁO: Phòng Đào tạo chuyển văn phòng tạm thời sang Tầng 2 Nhà E trong thời gian cải tạo Nhà G. ***
+                </div>
+            </div>
+            
+            <div class="shrink-0 ml-4 border-l border-slate-600 pl-4 flex gap-4">
+                <button class="text-sm bg-slate-700 px-3 py-1 rounded text-slate-300 hover:text-white hover:bg-slate-600 btn-kiosk" onclick="toggleLanguageManual()">
+                    &#127760; <span id="manual-lang-btn">EN</span>
+                </button>
+                <button class="text-sm bg-slate-700 px-3 py-1 rounded text-slate-300 hover:text-white hover:bg-slate-600 btn-kiosk" data-lang="help-btn">
+                    Trợ giúp?
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const screens = ['view-home', 'view-map', 'view-schedule', 'view-booking', 'view-admin', 'view-news'];
+        let timeout;
+        let chartInstance = null;
+        let currentLang = 'vi';
+
+        // Multilingual dictionary for full localization
+        const dict = {
+            vi: {
+                "back": "QUAY LẠI",
+                "header-sub": "Trường Đại học Khoa học Xã hội & Nhân văn",
+                "weather": "Thanh Xuân, Hà Nội: 28°C",
+                "map-overview": "SƠ ĐỒ KHUÔN VIÊN TỔNG THỂ",
+                "map-tap": "Chạm để phóng to & tìm đường",
+                "menu-map": "Bản Đồ & Phòng Học",
+                "menu-map-desc": "Tìm đường, định vị khu vực thi, giảng đường",
+                "menu-schedule": "Tra Cứu Lịch Thi & Học",
+                "menu-schedule-desc": "Quét thẻ hoặc nhập MSSV để xem lịch trình",
+                "menu-booking": "Phòng Trống & Mượn Phòng",
+                "menu-booking-desc": "Tra cứu phòng tự học trống & làm thủ tục mượn phòng nhanh",
+                "menu-admin": "Hành Chính Một Cửa",
+                "menu-admin-desc": "Lấy mẫu đơn, bảng điểm, theo dõi tiến độ",
+                "menu-news": "Bảng Tin & Sự Kiện",
+                "menu-news-desc": "Thông báo đào tạo, học bổng, hoạt động",
+                "map-hint": "Tính năng cung cấp sơ đồ mặt bằng chi tiết. Nhập tên phòng (VD: E.302) để Kiosk tự động vẽ đường dẫn từ vị trí hiện tại.",
+                "map-btn-find": "TÌM ĐƯỜNG",
+                "map-btn-reset": "LÀM MỚI",
+                "kb-clear": "XÓA",
+                "schedule-intro": "Tra cứu thời khóa biểu cá nhân, lịch thi và phòng học trực tiếp từ dữ liệu Phòng Đào tạo.",
+                "scan-card": "QUAY LẠI / QUÉT THẺ",
+                "scan-card-desc": "Đưa mặt sau thẻ vào đầu đọc bên dưới màn hình",
+                "or-manual": "HOẶC NHẬP THỦ CÔNG",
+                "find": "TÌM",
+                "schedule-empty": "Vui lòng nhập MSSV để tra cứu",
+                "schedule-term": "Kỳ II, Năm học 2025-2026",
+                "upcoming-exams": "LỊCH THI SẮP TỚI",
+                "exam-date": "Ngày Thi",
+                "exam-subject": "Môn Thi",
+                "exam-time": "Giờ",
+                "exam-room": "Phòng",
+                "exam-action": "Hành động",
+                "tab-rooms": "Tra Cứu Phòng Trống (Real-Time)",
+                "tab-reserve": "Quy Trình Mượn Phòng Học",
+                "booking-hint": "*Dữ liệu cập nhật mỗi 5 phút dựa trên hệ thống quản lý lịch giảng dạy của nhà trường và cảm biến điện năng phòng học.",
+                "tbl-building": "Tòa Nhà",
+                "tbl-room": "Số Phòng",
+                "tbl-capacity": "Sức Chứa",
+                "tbl-status": "Trạng Thái",
+                "tbl-next-vacant": "Thời Gian Trống Tiếp Theo",
+                "status-vacant": "Trống",
+                "status-occupied": "Đang Dạy Học",
+                "time-e302": "Đến 13:30 (Ca 3)",
+                "time-bc405": "Sau 11:30",
+                "time-g102": "Cả Ngày",
+                "time-a201": "Đến 15:00",
+                "wizard-title": "Mượn Phòng Tự Động",
+                "wz-s1": "Xác thực Thẻ / MSSV",
+                "wz-s2": "Chọn Tiết & Mục Đích",
+                "wz-s3": "Nhận QR Phê Duyệt",
+                "wizard-rules": "* Lưu ý: Đăng ký mượn phòng tự động chỉ áp dụng cho tự học nhóm, hội ý ban cán sự lớp hoặc sinh hoạt câu lạc bộ dưới 40 người.",
+                "step1-title": "Bước 1: Nhập Mã Số Sinh Viên để Tiếp Tục",
+                "step2-title": "Bước 2: Cung Cấp Thông Tin Mượn",
+                "lbl-room-sel": "Phòng Đăng Ký:",
+                "lbl-shifts": "Khung Giờ (Ca Học):",
+                "lbl-purpose": "Mục Đích Sử Dụng:",
+                "purpose-p1": "Học nhóm chuẩn bị thuyết trình",
+                "purpose-p2": "Sinh hoạt Chi đoàn lớp",
+                "purpose-p3": "Hội ý câu lạc bộ USSH",
+                "purpose-p4": "Tập luyện văn nghệ / sự kiện",
+                "reserve-success": "Mượn Phòng Thành Công!",
+                "qr-hint": "* Chụp màn hình hoặc lưu mã QR này để xuất trình cho Ban bảo vệ khu vực khi nhận chìa khóa phòng.",
+                "admin-title": "Hành Chính Một Cửa",
+                "admin-desc": "Cung cấp quy trình, tải biểu mẫu và số liệu xử lý thực tế.",
+                "admin-opt1": "1. Cấp Giấy chứng nhận sinh viên",
+                "admin-opt1-desc": "Hoãn NVQS, vé xe buýt, thẻ thư viện...",
+                "admin-opt2": "2. Cấp Bảng điểm tạm thời",
+                "admin-opt2-desc": "Xin việc, thực tập, du học...",
+                "admin-opt3": "Thống kê năng lực xử lý",
+                "admin-opt3-desc": "Tốc độ giải quyết hồ sơ 30 ngày qua",
+                "admin-badge": "Báo cáo",
+                "admin-empty": "Vui lòng chọn thủ tục bên trái",
+                "news-intro": "Bảng tin số tổng hợp các hoạt động, thông báo quan trọng và sự kiện nổi bật đang diễn ra tại trường.",
+                "filter-all": "Tất cả",
+                "filter-edu": "Đào Tạo",
+                "filter-scholar": "Học Bổng",
+                "filter-event": "Sự Kiện",
+                "ticker-badge": "TIN KHẨN",
+                "help-btn": "Trợ giúp?",
+                "ticker-content": "*** THÔNG BÁO: Lịch đăng ký tín chỉ học kỳ I năm học 2026-2027 bắt đầu từ 08:00 ngày 15/07. Sinh viên chú ý truy cập hệ thống đúng giờ. ***"
+            },
+            en: {
+                "back": "GO BACK",
+                "header-sub": "VNU University of Social Sciences and Humanities",
+                "weather": "Thanh Xuan, Hanoi: 28°C",
+                "map-overview": "CAMPUS OVERALL LAYOUT",
+                "map-tap": "Tap to zoom & navigate",
+                "menu-map": "Maps & Lecture Halls",
+                "menu-map-desc": "Find ways, locate exam zones & classrooms",
+                "menu-schedule": "Exam & Class Schedules",
+                "menu-schedule-desc": "Scan card or enter Student ID to view schedule",
+                "menu-booking": "Empty Rooms & Reservation",
+                "menu-booking-desc": "Search for empty study rooms & book classrooms",
+                "menu-admin": "One-Stop Admin Portal",
+                "menu-admin-desc": "Get forms, transcripts & tracking",
+                "menu-news": "News & Events",
+                "menu-news-desc": "Academic announcements, scholarships, activities",
+                "map-hint": "This feature provides detailed layouts. Enter room (e.g. E.302) and the kiosk will draw a dynamic path.",
+                "map-btn-find": "FIND PATH",
+                "map-btn-reset": "RESET",
+                "kb-clear": "CLEAR",
+                "schedule-intro": "Look up student personal timetables, exam schedules from VNU Training database.",
+                "scan-card": "SCAN STUDENT CARD",
+                "scan-card-desc": "Place card barcode/QR under the screen reader",
+                "or-manual": "OR ENTER MANUALLY",
+                "find": "SEARCH",
+                "schedule-empty": "Please enter Student ID to search",
+                "schedule-term": "Semester II, Academic Year 2025-2026",
+                "upcoming-exams": "UPCOMING EXAMS",
+                "exam-date": "Date",
+                "exam-subject": "Subject",
+                "exam-time": "Time",
+                "exam-room": "Room",
+                "exam-action": "Action",
+                "tab-rooms": "Real-time Room Vacancy",
+                "tab-reserve": "Classroom Reservation Wizard",
+                "booking-hint": "*Data is updated every 5 minutes based on academic timetables and smart building sensors.",
+                "tbl-building": "Building",
+                "tbl-room": "Room No.",
+                "tbl-capacity": "Capacity",
+                "tbl-status": "Status",
+                "tbl-next-vacant": "Next Vacant Period",
+                "status-vacant": "Vacant",
+                "status-occupied": "Occupied / In Class",
+                "time-e302": "Until 13:30 (Shift 3)",
+                "time-bc405": "After 11:30",
+                "time-g102": "All Day",
+                "time-a201": "Until 15:00",
+                "wizard-title": "Automated Reservation",
+                "wz-s1": "Authentication",
+                "wz-s2": "Select Shift & Purpose",
+                "wz-s3": "Get QR Pass",
+                "wizard-rules": "* Notice: Automatic classroom booking is only for small-scale self-study groups, class committees or club meetings.",
+                "step1-title": "Step 1: Enter Student ID to Continue",
+                "step2-title": "Step 2: Reservation Details",
+                "lbl-room-sel": "Selected Room:",
+                "lbl-shifts": "Academic Shift:",
+                "lbl-purpose": "Purpose of Use:",
+                "purpose-p1": "Group presentation study",
+                "purpose-p2": "Youth Union Class Assembly",
+                "purpose-p3": "USSH Club Assembly",
+                "purpose-p4": "Performance / Event Practice",
+                "reserve-success": "Room Reservation Success!",
+                "qr-hint": "* Capture or save this QR code to present to Campus Guards when picking up keys.",
+                "admin-title": "One-Stop Admin Services",
+                "admin-desc": "Get processes, forms and see factual operational speed.",
+                "admin-opt1": "1. Student Certification",
+                "admin-opt1-desc": "Military service deferment, bus tickets...",
+                "admin-opt2": "2. Temporary Transcript",
+                "admin-opt2-desc": "Employment, internships, study abroad...",
+                "admin-opt3": "Processing Performance",
+                "admin-opt3-desc": "Processing speed in the last 30 days",
+                "admin-badge": "Reports",
+                "admin-empty": "Please choose a procedure from the left",
+                "news-intro": "Information feed on academics, scholarship opportunities, and active campus events.",
+                "filter-all": "All",
+                "filter-edu": "Academic",
+                "filter-scholar": "Scholarships",
+                "filter-event": "Events",
+                "ticker-badge": "URGENT",
+                "help-btn": "Help?",
+                "ticker-content": "*** NOTICE: Academic registration for Sem I, 2026-2027 starts at 08:00 on July 15. Please access Portal on time. ***"
+            }
+        };
+
+        // Screensaver background cycling handler
+        let ssBgState = 1;
+        setInterval(() => {
+            const bg1 = document.getElementById('ss-bg-1');
+            const bg2 = document.getElementById('ss-bg-2');
+            if (ssBgState === 1) {
+                bg1.classList.remove('opacity-80');
+                bg1.classList.add('opacity-0');
+                bg2.classList.remove('opacity-0');
+                bg2.classList.add('opacity-80');
+                ssBgState = 2;
+            } else {
+                bg2.classList.remove('opacity-80');
+                bg2.classList.add('opacity-0');
+                bg1.classList.remove('opacity-0');
+                bg1.classList.add('opacity-80');
+                ssBgState = 1;
+            }
+        }, 6000);
+
+        function updateClock() {
+            const now = new Date();
+            let h = now.getHours().toString().padStart(2, '0');
+            let m = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('clock').innerText = `${h}:${m}`;
+            
+            const daysVi = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+            const daysEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            let day = currentLang === 'vi' ? daysVi[now.getDay()] : daysEn[now.getDay()];
+            let d = now.getDate().toString().padStart(2, '0');
+            let mo = (now.getMonth() + 1).toString().padStart(2, '0');
+            let y = now.getFullYear();
+            
+            document.getElementById('date').innerText = currentLang === 'vi' ? `${day}, ${d}/${mo}/${y}` : `${day}, ${mo}/${d}/${y}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function resetTimer() {
+            clearTimeout(timeout);
+            if (!document.getElementById('app').classList.contains('hidden')) {
+                timeout = setTimeout(showScreensaver, 60000); // 60 seconds of inactivity triggers reset
+            }
+        }
+
+        function showScreensaver() {
+            document.getElementById('app').classList.add('hidden');
+            document.getElementById('screensaver').classList.remove('hidden');
+            document.getElementById('screensaver').classList.add('flex');
+            resetMap();
+            clearMssv();
+            resetReservationFlow();
+        }
+
+        // Apply Language Pack
+        function applyLanguage(lang) {
+            currentLang = lang;
+            document.getElementById('manual-lang-btn').innerText = lang === 'vi' ? 'EN' : 'VI';
+            
+            document.querySelectorAll('[data-lang]').forEach(el => {
+                const translationKey = el.getAttribute('data-lang');
+                if(dict[lang][translationKey]) {
+                    el.innerText = dict[lang][translationKey];
+                }
+            });
+
+            // Specific placeholders and tickers update
+            document.getElementById('map-search').placeholder = lang === 'vi' ? 'Nhập số phòng (VD: E.302, G.201)...' : 'Enter room (e.g. E.302, G.201)...';
+            document.getElementById('mssv-input').placeholder = lang === 'vi' ? 'Nhập MSSV' : 'Student ID';
+            document.getElementById('reserve-mssv').placeholder = lang === 'vi' ? '23030000' : '23030000';
+            document.getElementById('marquee-ticker-content').innerText = dict[lang]['ticker-content'];
+
+            updateClock();
+        }
+
+        function toggleLanguageManual() {
+            const nextLang = currentLang === 'vi' ? 'en' : 'vi';
+            applyLanguage(nextLang);
+        }
+
+        function openHome(lang) {
+            applyLanguage(lang);
+            document.getElementById('screensaver').classList.add('hidden');
+            document.getElementById('screensaver').classList.remove('flex');
+            document.getElementById('app').classList.remove('hidden');
+            navigate('view-home');
+            resetTimer();
+        }
+
+        function navigate(screenId) {
+            screens.forEach(s => {
+                const el = document.getElementById(s);
+                el.classList.add('hidden');
+                el.classList.remove('fade-in'); 
+            });
+            
+            const target = document.getElementById(screenId);
+            target.classList.remove('hidden');
+            
+            void target.offsetWidth;
+            
+            target.classList.add('fade-in');
+
+            const backBtn = document.getElementById('btn-back');
+            if (screenId === 'view-home') {
+                backBtn.classList.add('hidden');
+            } else {
+                backBtn.classList.remove('hidden');
+            }
+            
+            if(screenId === 'view-map') resizeCanvas();
+            if(screenId === 'view-news') renderNews('all');
+            if(screenId === 'view-admin') {
+                const selectText = dict[currentLang]['admin-empty'];
+                document.getElementById('admin-detail-content').innerHTML = `
+                    <div class="text-center text-slate-400 mt-20">
+                        <div class="text-6xl mb-4">&#9756;</div>
+                        <h2 class="text-2xl font-bold">${selectText}</h2>
+                    </div>
+                `;
+            }
+        }
+
+        function goBack() {
+            navigate('view-home');
+        }
+
+        let mssvVal = '';
+        function appendMssv(num) {
+            if (mssvVal.length < 8) {
+                mssvVal += num;
+                document.getElementById('mssv-input').value = mssvVal;
+            }
+        }
+        function clearMssv() {
+            mssvVal = '';
+            document.getElementById('mssv-input').value = '';
+            document.getElementById('schedule-empty').classList.remove('hidden');
+            document.getElementById('schedule-result').classList.add('hidden');
+        }
+        function lookupSchedule() {
+            if (mssvVal.length >= 6) {
+                document.getElementById('schedule-empty').classList.add('hidden');
+                document.getElementById('schedule-result').classList.remove('hidden');
+                document.getElementById('stu-id').innerText = mssvVal;
+            }
+        }
+
+        function resizeCanvas() {
+            const img = document.getElementById('base-map-img');
+            const canvas = document.getElementById('map-canvas');
+            canvas.width = img.clientWidth;
+            canvas.height = img.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function showMapKeyboard() {
+            document.getElementById('map-keyboard').classList.remove('hidden');
+        }
+        function typeMap(val) {
+            const inp = document.getElementById('map-search');
+            inp.value += val;
+            showMapKeyboard();
+        }
+        function clearMapTyping() {
+            document.getElementById('map-search').value = '';
+            resetMap();
+        }
+        function resetMap() {
+            const canvas = document.getElementById('map-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('map-info-modal').classList.add('hidden');
+            document.getElementById('map-search').value = '';
+            document.getElementById('map-keyboard').classList.add('hidden');
+        }
+        
+        function showMapInfo(title, desc) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            document.getElementById('map-info-modal').classList.remove('hidden');
+        }
+
+        function triggerPathfinding() {
+            const val = document.getElementById('map-search').value.toUpperCase();
+            if(!val) return;
+            
+            const canvas = document.getElementById('map-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            const start = {x: w * 0.14, y: h * 0.75};
+            let end = null;
+            
+            if(val.includes('E')) end = {x: w * 0.55, y: h * 0.25};
+            else if(val.includes('G')) end = {x: w * 0.65, y: h * 0.15};
+            else if(val.includes('I')) end = {x: w * 0.88, y: h * 0.20};
+            else end = {x: w * 0.5, y: h * 0.5};
+
+            let progress = 0;
+            function drawAnim() {
+                ctx.clearRect(0, 0, w, h);
+                ctx.beginPath();
+                ctx.moveTo(start.x, start.y);
+                
+                const midX = start.x;
+                const midY = end.y;
+                
+                ctx.strokeStyle = 'rgba(220, 38, 38, 0.7)';
+                ctx.lineWidth = 6;
+                ctx.setLineDash([15, 10]);
+                
+                if (progress < 0.5) {
+                    const curY = start.y + (midY - start.y) * (progress * 2);
+                    ctx.lineTo(start.x, curY);
+                } else {
+                    ctx.lineTo(midX, midY);
+                    const curX = midX + (end.x - midX) * ((progress - 0.5) * 2);
+                    ctx.lineTo(curX, midY);
+                }
+                
+                ctx.stroke();
+                
+                progress += 0.02;
+                if (progress <= 1) {
+                    requestAnimationFrame(drawAnim);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(end.x, end.y, 10, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#dc2626';
+                    ctx.fill();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = 'white';
+                    ctx.stroke();
+                }
+            }
+            drawAnim();
+            document.getElementById('map-keyboard').classList.add('hidden');
+        }
+
+        function switchBookingTab(tab) {
+            const btnRooms = document.getElementById('tab-btn-rooms');
+            const btnReserve = document.getElementById('tab-btn-reserve');
+            const containerRooms = document.getElementById('booking-rooms-container');
+            const containerReserve = document.getElementById('booking-reserve-container');
+
+            if(tab === 'rooms') {
+                btnRooms.className = 'py-4 px-8 font-bold text-2xl border-b-4 border-violet-600 text-violet-700';
+                btnReserve.className = 'py-4 px-8 font-bold text-2xl text-slate-500 hover:text-slate-700';
+                containerRooms.classList.remove('hidden');
+                containerReserve.classList.add('hidden');
+            } else {
+                btnReserve.className = 'py-4 px-8 font-bold text-2xl border-b-4 border-violet-600 text-violet-700';
+                btnRooms.className = 'py-4 px-8 font-bold text-2xl text-slate-500 hover:text-slate-700';
+                containerReserve.classList.remove('hidden');
+                containerRooms.classList.add('hidden');
+            }
+        }
+
+        // Booking step variables
+        let reserveMssvVal = '';
+        function appendReserveMssv(num) {
+            if(reserveMssvVal.length < 8) {
+                reserveMssvVal += num;
+                document.getElementById('reserve-mssv').value = reserveMssvVal;
+            }
+        }
+        function clearReserveMssv() {
+            reserveMssvVal = '';
+            document.getElementById('reserve-mssv').value = '';
+        }
+
+        function triggerDirectReserve(roomId) {
+            document.getElementById('reserve-room-id').value = roomId;
+            switchBookingTab('reserve');
+        }
+
+        function reserveStepNext(currentStep) {
+            if(currentStep === 1) {
+                if(reserveMssvVal.length < 6) {
+                    alert(currentLang === 'vi' ? 'Vui lòng nhập MSSV hợp lệ!' : 'Please enter a valid Student ID!');
+                    return;
+                }
+                document.getElementById('booking-step-1').classList.add('hidden');
+                document.getElementById('booking-step-2').classList.remove('hidden');
+                
+                document.getElementById('step-ind-1').className = 'flex items-center gap-3 text-emerald-600 font-bold';
+                document.getElementById('step-ind-1').querySelector('span').className = 'w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center';
+                document.getElementById('step-ind-1').querySelector('span').innerHTML = '&#10004;';
+                
+                document.getElementById('step-ind-2').className = 'flex items-center gap-3 text-violet-600 font-bold';
+                document.getElementById('step-ind-2').querySelector('span').className = 'w-10 h-10 rounded-full bg-violet-600 text-white flex items-center justify-center';
+            } else if(currentStep === 2) {
+                document.getElementById('booking-step-2').classList.add('hidden');
+                document.getElementById('booking-step-3').classList.remove('hidden');
+
+                document.getElementById('step-ind-2').className = 'flex items-center gap-3 text-emerald-600 font-bold';
+                document.getElementById('step-ind-2').querySelector('span').className = 'w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center';
+                document.getElementById('step-ind-2').querySelector('span').innerHTML = '&#10004;';
+
+                document.getElementById('step-ind-3').className = 'flex items-center gap-3 text-violet-600 font-bold';
+                document.getElementById('step-ind-3').querySelector('span').className = 'w-10 h-10 rounded-full bg-violet-600 text-white flex items-center justify-center';
+
+                // Populate receipt summaries
+                document.getElementById('summary-mssv').innerText = reserveMssvVal;
+                document.getElementById('summary-room').innerText = document.getElementById('reserve-room-id').value;
+                document.getElementById('summary-time').innerText = document.getElementById('reserve-shift').value;
+            }
+        }
+
+        function reserveStepPrev(currentStep) {
+            if(currentStep === 2) {
+                document.getElementById('booking-step-2').classList.add('hidden');
+                document.getElementById('booking-step-1').classList.remove('hidden');
+
+                document.getElementById('step-ind-1').className = 'flex items-center gap-3 text-violet-600 font-bold';
+                document.getElementById('step-ind-1').querySelector('span').className = 'w-10 h-10 rounded-full bg-violet-600 text-white flex items-center justify-center';
+                document.getElementById('step-ind-1').querySelector('span').innerText = '1';
+
+                document.getElementById('step-ind-2').className = 'flex items-center gap-3 text-slate-400';
+                document.getElementById('step-ind-2').querySelector('span').className = 'w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center';
+            }
+        }
+
+        function resetReservationFlow() {
+            clearReserveMssv();
+            document.getElementById('booking-step-3').classList.add('hidden');
+            document.getElementById('booking-step-2').classList.add('hidden');
+            document.getElementById('booking-step-1').classList.remove('hidden');
+
+            document.getElementById('step-ind-1').className = 'flex items-center gap-3 text-violet-600 font-bold';
+            document.getElementById('step-ind-1').querySelector('span').className = 'w-10 h-10 rounded-full bg-violet-600 text-white flex items-center justify-center';
+            document.getElementById('step-ind-1').querySelector('span').innerText = '1';
+
+            document.getElementById('step-ind-2').className = 'flex items-center gap-3 text-slate-400';
+            document.getElementById('step-ind-2').querySelector('span').className = 'w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center';
+            document.getElementById('step-ind-2').querySelector('span').innerText = '2';
+
+            document.getElementById('step-ind-3').className = 'flex items-center gap-3 text-slate-400';
+            document.getElementById('step-ind-3').querySelector('span').className = 'w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center';
+            document.getElementById('step-ind-3').querySelector('span').innerText = '3';
+
+            switchBookingTab('rooms');
+        }
+
+        const adminData = {
+            cert: `
+                <div class="fade-in">
+                    <h3 class="text-3xl font-bold text-slate-800 mb-6" data-lang="admin-opt1">Xin Cấp Giấy Chứng Nhận Sinh Viên</h3>
+                    <div class="flex gap-8">
+                        <div class="w-1/2">
+                            <h4 class="text-xl font-bold text-emerald-700 mb-4 border-b-2 border-emerald-200 pb-2">Quy Trình 3 Bước:</h4>
+                            <ol class="list-decimal pl-5 space-y-4 text-lg text-slate-700">
+                                <li>Quét mã QR bên cạnh để tải Mẫu đơn ĐT-01.</li>
+                                <li>Điền thông tin và ký tên trực tiếp trên điện thoại hoặc in ra giấy.</li>
+                                <li>Nộp tại Bàn số 3 - Phòng Đào tạo (Tầng 1 Nhà E).</li>
+                            </ol>
+                            <div class="mt-8 bg-amber-50 p-4 border border-amber-200 rounded-lg text-sm text-amber-800">
+                                <strong>&#9201; Thời gian trả kết quả:</strong> 02 ngày làm việc.
+                            </div>
+                        </div>
+                        <div class="w-1/2 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl p-6">
+                            <div class="qr-placeholder mb-4"></div>
+                            <p class="font-bold text-slate-800 text-xl">Quét để tải mẫu đơn</p>
+                            <p class="text-slate-500 text-sm">Định dạng .DOCX</p>
+                        </div>
+                    </div>
+                </div>
+            `,
+            transcript: `
+                <div class="fade-in">
+                    <h3 class="text-3xl font-bold text-slate-800 mb-6" data-lang="admin-opt2">Xin Cấp Bảng Điểm Tạm Thời</h3>
+                    <p class="text-lg text-slate-600 mb-6">Sử dụng cho mục đích xin thực tập, kiến tập, xin học bổng hoặc du học.</p>
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                        <h4 class="font-bold text-blue-800 text-xl mb-4">Hướng dẫn:</h4>
+                        <p class="text-lg mb-2">Sinh viên không cần làm đơn giấy. Vui lòng thao tác trên Portal sinh viên:</p>
+                        <ul class="list-disc pl-6 space-y-2 text-slate-700 text-lg">
+                            <li>Đăng nhập <a href="#" class="text-blue-600 font-bold underline">daotao.vnu.edu.vn</a></li>
+                            <li>Chọn mục <strong>Dịch vụ công</strong> -> <strong>Cấp bảng điểm</strong></li>
+                            <li>Lựa chọn định dạng: Bản mềm (PDF có chữ ký số) hoặc Bản cứng.</li>
+                        </ul>
+                    </div>
+                </div>
+            `,
+            stats: `
+                <div class="fade-in w-full">
+                    <h3 class="text-3xl font-bold text-slate-800 mb-2">Thống Kê Xử Lý Hồ Sơ (30 ngày qua)</h3>
+                    <p class="text-slate-500 mb-6 border-b pb-4">Biểu đồ thể hiện số lượng yêu cầu hành chính sinh viên đã được giải quyết thành công.</p>
+                    <div class="chart-container">
+                        <canvas id="adminChart"></canvas>
+                    </div>
+                </div>
+            `
+        };
+
+        function showAdminDetail(type) {
+            const container = document.getElementById('admin-detail-content');
+            container.innerHTML = adminData[type];
+            
+            if (type === 'stats') {
+                setTimeout(renderAdminChart, 100); 
+            }
+        }
+
+        function renderAdminChart() {
+            const ctx = document.getElementById('adminChart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Giấy chứng nhận SV', 'Bảng điểm', 'Thẻ sinh viên', 'Xác nhận vay vốn', 'Đăng ký học lại'],
+                    datasets: [{
+                        label: 'Số lượng hồ sơ đã giải quyết',
+                        data: [450, 320, 150, 80, 210],
+                        backgroundColor: '#10b981', 
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleFont: { size: 16 },
+                            bodyFont: { size: 14, weight: 'bold' },
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.raw + ' hồ sơ';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9' },
+                            ticks: { font: { size: 14 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { 
+                                font: { size: 14, weight: 'bold' },
+                                color: '#475569'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const newsData = [
+            { id: 1, type: 'event', title: 'Ngày hội Sinh viên Nhân văn 2026', desc: 'Chương trình chào tân sinh viên lớn nhất năm với sự tham gia của 30+ Câu lạc bộ.', img: '536593291_1219608263541492_1508595193435591745_n.jpg', tag: 'Sự kiện' },
+            { id: 2, type: 'edu', title: 'Cảnh báo học vụ & Buộc thôi học Kỳ I', desc: 'Danh sách sinh viên dự kiến bị cảnh báo học vụ. Sinh viên vui lòng kiểm tra portal.', img: '', tag: 'Đào tạo' },
+            { id: 3, type: 'scholar', title: 'Học bổng Yamada (Nhật Bản) 2026', desc: 'Dành cho sinh viên xuất sắc khối ngành Đông Phương học và Quốc tế học.', img: '', tag: 'Học bổng' },
+            { id: 4, type: 'edu', title: 'Lịch bảo vệ Khóa luận Tốt nghiệp', desc: 'Lịch bảo vệ chính thức cho sinh viên K65. Các Hội đồng bắt đầu làm việc từ 20/05.', img: '557406248_1257665696402415_1409227559347378126_n.jpg', tag: 'Đào tạo' }
+        ];
+
+        function filterNews(filter) {
+            renderNews(filter);
+        }
+
+        function renderNews(filter) {
+            const container = document.getElementById('news-container');
+            container.innerHTML = '';
+            
+            const filtered = filter === 'all' ? newsData : newsData.filter(n => n.type === filter);
+            
+            filtered.forEach(news => {
+                let imgHtml = news.img ? `<img src="${news.img}" class="w-full h-48 object-cover">` : `<div class="w-full h-48 bg-slate-200 flex items-center justify-center text-slate-400 text-5xl">&#128240;</div>`;
+                
+                let tagColor = 'bg-blue-100 text-blue-800';
+                if(news.type === 'event') tagColor = 'bg-pink-100 text-pink-800';
+                if(news.type === 'scholar') tagColor = 'bg-amber-100 text-amber-800';
+
+                const card = `
+                    <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col hover:shadow-lg transition-shadow cursor-pointer btn-kiosk">
+                        ${imgHtml}
+                        <div class="p-6 flex flex-col flex-grow">
+                            <span class="inline-block px-3 py-1 text-xs font-bold rounded mb-3 w-max ${tagColor}">${news.tag}</span>
+                            <h3 class="text-xl font-bold text-slate-800 mb-2 leading-tight">${news.title}</h3>
+                            <p class="text-slate-600 text-base flex-grow line-clamp-3">${news.desc}</p>
+                            <div class="mt-4 text-red-700 font-bold flex items-center justify-between border-t pt-4">
+                                ${currentLang === 'vi' ? 'Xem chi tiết' : 'Details'} <span>&#10140;</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        }
+    </script>
+</body>
+</html>
